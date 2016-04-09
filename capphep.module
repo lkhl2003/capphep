@@ -1,13 +1,361 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: levanhuyen
  * Date: 10/28/15
  * Time: 2:23 PM
  */
-/**
- * Implements hook_form_alter().
- */
+use PhpOffice\PhpWord;
+
+function capphep_menu() {
+  $items = array();
+
+  $items['test'] = array(
+    'title' => 'Test',
+    'page callback' => 'capphep_test',
+    'access callback' => TRUE,
+  );
+
+  $items['maufileGCN'] = array(
+    'title' => 'Mẫu file GCN',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('capphep_maufilegcn_form'),
+    'access callback' => TRUE,
+  );
+
+  $items['infileGCN'] = array(
+    'title' => 'In file GCN',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('capphep_infilegcn_form'),
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+function capphep_infilegcn_form($form, $form_state) {
+  $header = array(
+    'mahs' => array('data' => t('Ma HS'), 'field' => 'mahs'),
+    'hoten' => array('data' => t('Ho ten'), 'field' => 'hoten'),
+    'diachi' => array('data' => t('Dia chi'), 'field' => 'diachi'),
+    'ngaycap' => array('data' => t('Ngay cap'), 'field' => 'ngaycap'),
+  );
+
+  $query = db_select('node', 'n');
+  $query->condition('n.type', 'giaychungnhan');
+  user_build_filter_query($query);
+
+  $count_query = clone $query;
+  $count_query->addExpression('COUNT(n.nid)');
+
+  $query = $query->extend('PagerDefault')->extend('TableSort');
+  $query->innerJoin('field_data_field_ho_ten', 'fht', 'n.nid=fht.entity_id');
+  $query->innerJoin('field_data_field_dia_chi', 'fdc', 'n.nid=fdc.entity_id');
+  $query->innerJoin('field_data_field_ngay_cap_gcn', 'fnc', 'n.nid=fnc.entity_id');
+  $query->addField('n', 'title', 'mahs');
+  $query->addField('n', 'nid');
+  $query->addField('fht', 'field_ho_ten_value', 'hoten');
+  $query->addField('fdc', 'field_dia_chi_value', 'diachi');
+  $query->addExpression("date_format(fnc.field_ngay_cap_gcn_value, '%d/%m/%Y')", 'ngaycap');
+
+  $query
+      ->limit(50)
+      ->orderByHeader($header)
+      ->setCountQuery($count_query);
+  $result = $query->execute();
+
+  $options = array();
+  foreach ($result as $node) {
+    $options[$node->nid] = array(
+      'mahs' => $node->mahs,
+      'hoten' => $node->hoten,
+      'diachi' => $node->diachi,
+      'ngaycap' => $node->ngaycap,
+    );
+  }
+
+  $form['gcn'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $options,
+    '#empty' => t('No people available.'),
+  );
+
+  $form['pager'] = array('#theme' => 'pager');
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('In File GCN'),
+  );
+  return $form;
+}
+
+function capphep_get_template_file() {
+
+  $wordPath = libraries_get_path('PHPWord');
+  $dompath = libraries_get_path('dompdf');
+  $capphepPath = drupal_get_path('module', 'capphep');
+  $tempalteFile = $capphepPath . '/MauGCN.docx';
+
+  require_once $wordPath . '/src/PhpWord/Autoloader.php';
+
+  \PhpOffice\PhpWord\Autoloader::register();
+  \PhpOffice\PhpWord\Settings::setPdfRenderer('DomPDF', $dompath);
+
+  $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($tempalteFile);
+  return $templateProcessor;
+
+
+  capphep_test_gcn($templateProcessor);
+
+  $templateProcessor->saveAs($docFile);
+
+  $phpWord = \PhpOffice\PhpWord\IOFactory::load($docFile);
+  $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+  $objWriter->save($pdfFile);
+  return 'ok';
+}
+
+function capphep_infilegcn_form_submit($form, $form_state) {
+  $nids = array_filter($form_state['values']['gcn']);
+  $nodes = node_load_multiple($nids);
+  $docxFiles = array();
+  $templateProcessor = capphep_get_template_file();
+
+  foreach ($nodes as $node) {
+    $templateProcessor = capphep_get_template_file();
+    $docxFiles[] = capphep_generate_file_gcn($node, $templateProcessor);
+  }
+
+  require_once libraries_get_path('DocxMerge') . '/src/DocxMerge.php';
+  $docxMerge = new DocxMerge\DocxMerge();
+
+  $tempDocx = file_directory_temp() . "/temp.docx";
+    
+  $docxMerge->merge($docxFiles, $tempDocx);
+  /*
+  header('Content-Description: File Transfer');
+  header('Content-Type: application/octet-stream');
+  header('Content-Disposition: attachment; filename=temp.docx');
+  header('Content-Transfer-Encoding: binary');
+  header('Expires: 0');
+  header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+  header('Pragma: public');
+  header('Content-Length: ' . filesize($tempDocx));
+  ob_clean();
+  flush();
+  $status = readfile($tempDocx);
+  unlink($tempDocx);
+  exit;
+*/
+}
+
+function capphep_generate_file_gcn($node, $templateProcessor) {
+  $docxFile = file_directory_temp() . '/' . $node->nid . '.docx';
+  $sogcn = $node->field_so_giay_chung_nhan['und'][0]['value'];
+
+  //Ngay cap GCN
+  $n1 = format_date(strtotime($node->field_ngay_cap_gcn['und'][0]['value']), 'custom', 'd');
+  $t1 = format_date(strtotime($node->field_ngay_cap_gcn['und'][0]['value']), 'custom', 'm');
+  $na1 = format_date(strtotime($node->field_ngay_cap_gcn['und'][0]['value']), 'custom', 'Y');
+
+  //Ngay gia tri
+  $n2 = $n1;
+  $t2 = $t1;
+  $na2 = $na1 + 3;
+
+  //Ngay cap lan dau
+  //Ngay sua doi, bo sung
+  //Ho va ten
+  $hovaten = $node->field_ho_ten['und'][0]['value'];
+  $socmnd = $node->field_so_cmnd['und'][0]['value'];
+
+  //Ngay cap CMND
+  $n5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'd');
+  $t5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'm');
+  $na5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'Y');
+
+  //Noi cap
+  $noicap = $node->field_noi_cap_cmnd['und'][0]['value'];
+
+  //Dia chi
+  $dc1 = $node->field_dia_chi['und'][0]['value'];
+
+  //So dien thoai
+  if (isset($node->field_so_dien_thoai['und'])) {
+    $sodienthoai = $node->field_so_dien_thoai['und'][0]['value'];
+  }
+  //FAX
+  if (isset($node->field_fax['und'])) {
+    $fax = $node->field_fax['und'][0]['value'];
+  }
+  //Email
+  if (isset($node->field_email['und'])) {
+    $email = $node->field_email['und'][0]['value'];
+  }
+  //So DKKD
+  $sodkkd = $node->field_so_dkkd['und'][0]['value'];
+
+  //Ten diem
+  $tendiem = $node->field_ten_diem['und'][0]['value'];
+
+  //Dia chi 1 (den xa)
+  $xa_id = $node->field_xa['und'][0]['target_id'];
+  $tenxa = node_load($xa_id)->title;
+  if (isset($node->field_dia_chi_diem['und'])) {
+    $diachi1 = $node->field_dia_chi_diem['und'][0]['value'] . ', ' . $tenxa;
+  }
+  else {
+    $diachi1 = $tenxa;
+  }
+  $diachi1 .= ',';
+
+  //Diachi2
+  $huyen_id = $node->field_huyen['und'][0]['target_id'];
+  $tinh_id = $node->field_tinh['und'][0]['target_id'];
+  $diachi2 = node_load($huyen_id)->title . ', ' . node_load($tinh_id)->title;
+
+  //Dien tich
+  $dientich = $node->field_tong_dien_tich['und'][0]['value'];
+
+  $templateProcessor->setValue('sogcn', isset($sogcn) ? $sogcn : '');
+  $templateProcessor->setValue('n1', isset($n1) ? $n1 : '');
+  $templateProcessor->setValue('t1', isset($t1) ? $t1 : '');
+  $templateProcessor->setValue('na1', isset($na1) ? $na1 : '');
+  $templateProcessor->setValue('n2', isset($n2) ? $n2 : '');
+  $templateProcessor->setValue('t2', isset($t2) ? $t2 : '');
+  $templateProcessor->setValue('na2', isset($na2) ? $na2 : '');
+  $templateProcessor->setValue('n3', isset($n3) ? $n3 : '');
+  $templateProcessor->setValue('t3', isset($t3) ? $t3 : '');
+  $templateProcessor->setValue('na3', isset($na3) ? $na3 : '');
+  $templateProcessor->setValue('n4', isset($n4) ? $n4 : '');
+  $templateProcessor->setValue('t4', isset($t4) ? $t4 : '');
+  $templateProcessor->setValue('na4', isset($na4) ? $na4 : '');
+  $templateProcessor->setValue('hovaten', isset($hovaten) ? $hovaten : '');
+  $templateProcessor->setValue('socmnd', isset($socmnd) ? $socmnd : '');
+  $templateProcessor->setValue('n5', isset($n5) ? $n5 : '');
+  $templateProcessor->setValue('t5', isset($t5) ? $t5 : '');
+  $templateProcessor->setValue('na5', isset($na5) ? $na5 : '');
+  $templateProcessor->setValue('noicap', isset($noicap) ? $noicap : '');
+  $templateProcessor->setValue('dc1', isset($dc1) ? $dc1 : '');
+  $templateProcessor->setValue('sodienthoai', isset($sodienthoai) ? $sodienthoai : '');
+  $templateProcessor->setValue('fax', isset($fax) ? $fax : '');
+  $templateProcessor->setValue('email', isset($email) ? $email : '');
+  $templateProcessor->setValue('sodkkd', isset($sodkkd) ? $sodkkd : '');
+  $templateProcessor->setValue('tendiem', isset($tendiem) ? $tendiem : '');
+  $templateProcessor->setValue('diachi1', isset($diachi1) ? $diachi1 : '');
+  $templateProcessor->setValue('diachi2', isset($diachi2) ? $diachi2 : '');
+  $templateProcessor->setValue('dientich', isset($dientich) ? $dientich : '');
+
+  $templateProcessor->saveAs($docxFile);
+  return $docxFile;
+}
+
+function capphep_maufilegcn_form($form, $form_state) {
+  $fid = variable_get('MauFileGCN_fid');
+  if ($fid) {
+    $form['uploaded_maufilegcn'] = array(
+      '#markup' => 'Mẫu file GCN đã có: ' . theme_file_link(array('file' => file_load($fid), 'icon_directory' => variable_get('file_icon_directory'))),
+    );
+  }
+  $form['maufilegcn'] = array(
+    '#title' => t('Upload Mẫu file GCN mới'),
+    '#type' => 'file',
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+}
+
+function capphep_maufilegcn_form_validate($form, &$form_state) {
+  $file = file_save_upload(
+      'maufilegcn', array('file_validate_extensions' => array('docx'),
+  ));
+  // If the file passed validation:
+  if ($file) {
+    $form_state['storage']['maufilegcn'] = $file;
+  }
+  else {
+    form_set_error('maufilegcn', t('No file was uploaded.'));
+  }
+}
+
+function capphep_maufilegcn_form_submit($form, $form_state) {
+  $file = $form_state['storage']['maufilegcn'];
+  // We are done with the file, remove it from storage.
+  unset($form_state['storage']['maufilegcn']);
+  // Make the storage of the file permanent.
+  $file->status = FILE_STATUS_PERMANENT;
+
+  // Save file status.
+
+  file_save($file);
+  variable_set('MauFileGCN_fid', $file->fid);
+  // Set a response to the user.
+  drupal_set_message(t('The form has been submitted and the image has been saved, filename: @filename:@fid.', array('@filename' => $file->filename, '@fid' => $file->fid)));
+}
+
+function capphep_test() {
+  $wordPath = libraries_get_path('PHPWord');
+  $dompath = libraries_get_path('dompdf');
+  $capphepPath = drupal_get_path('module', 'capphep');
+  $tempalteFile = $capphepPath . '/MauGCN.docx';
+  $docFile = $capphepPath . '/Ketqua.docx';
+  $htmlFile = $capphepPath . '/Ketqua.html';
+  $pdfFile = $capphepPath . '/Ketqua.pdf';
+  require_once $wordPath . '/src/PhpWord/Autoloader.php';
+
+
+  \PhpOffice\PhpWord\Autoloader::register();
+  \PhpOffice\PhpWord\Settings::setPdfRenderer('DomPDF', $dompath);
+
+  $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($tempalteFile);
+
+  capphep_test_gcn($templateProcessor);
+
+  $templateProcessor->saveAs($docFile);
+
+  $phpWord = \PhpOffice\PhpWord\IOFactory::load($docFile);
+  $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+  $objWriter->save($pdfFile);
+  return 'ok';
+}
+
+function capphep_test_gcn(&$templateProcessor) {
+  $templateProcessor->setValue('sogcn', '123456789');
+  $templateProcessor->setValue('n1', '15');
+  $templateProcessor->setValue('t1', '6');
+  $templateProcessor->setValue('na1', '2016');
+  $templateProcessor->setValue('n2', '15');
+  $templateProcessor->setValue('t2', '6');
+  $templateProcessor->setValue('na2', '2019');
+  $templateProcessor->setValue('n3', '15');
+  $templateProcessor->setValue('t3', '6');
+  $templateProcessor->setValue('na3', '2016');
+  $templateProcessor->setValue('n4', '');
+  $templateProcessor->setValue('t4', '');
+  $templateProcessor->setValue('na4', '');
+  $templateProcessor->setValue('hovaten', 'Lê Văn Huyên');
+  $templateProcessor->setValue('socmnd', '171180381');
+  $templateProcessor->setValue('n5', '26');
+  $templateProcessor->setValue('t5', '6');
+  $templateProcessor->setValue('na5', '2012');
+  $templateProcessor->setValue('noicap', 'CA Thanh Hóa');
+  $templateProcessor->setValue('dc1', 'Dư Khánh, Hoằng Đạo, Hoằng Hóa, Thanh Hóa');
+  $templateProcessor->setValue('sodienthoai', '0913867983');
+  $templateProcessor->setValue('fax', '');
+  $templateProcessor->setValue('email', 'huyenlevan@gmail.com');
+  $templateProcessor->setValue('sodkkd', 'CA173625777');
+  $templateProcessor->setValue('tendiem', 'GAME Siêu tốc Thanh Hóa');
+  $templateProcessor->setValue('diachi1', 'Xóm Mới, thôn Dư Khánh, xã Hoằng Đạo,');
+  $templateProcessor->setValue('diachi2', 'huyện Hoằng Hóa, tỉnh Thanh Hóa');
+  $templateProcessor->setValue('dientich', '60');
+}
 
 function capphep_form_views_exposed_form_alter(&$form, &$form_state) {
   if ($form['#id'] == 'views-exposed-form-danh-sach-giay-chung-nhan-page') {
@@ -25,7 +373,7 @@ function capphep_form_views_exposed_form_alter(&$form, &$form_state) {
       'wrapper' => 'xa_target_id_wrapper',
     );
 
-    if(is_numeric($selectedHuyen)) {
+    if (is_numeric($selectedHuyen)) {
       $xa_list = array(
         'All' => '- Any -',
       );
@@ -83,8 +431,8 @@ function capphep_form_giaychungnhan_node_form_alter(&$form, &$form_state, $form_
     $form['field_huyen']['und']['#options'] = $huyen_list;
     $form['field_huyen']['und']['#default_value'] = $selected_huyen;
     $form['field_huyen']['und']['#ajax'] = array(
-        'callback' => '_huyen_dropdown_callback',
-        'wrapper' => 'xa_wrapper',
+      'callback' => '_huyen_dropdown_callback',
+      'wrapper' => 'xa_wrapper',
     );
 
     $xa_list = _cap_phep_internet_load_xa($selected_huyen);
@@ -107,7 +455,7 @@ function _huyen_dropdown_callback($form, $form_state) {
 }
 
 //field_xa_target_id
-function _cap_phep_internet_load_tinh(){
+function _cap_phep_internet_load_tinh() {
   $tinh_list = array();
 
   $results = db_select('node', 'n')
@@ -130,9 +478,9 @@ function _cap_phep_internet_load_huyen($selected_tinh) {
   $query->innerjoin('field_data_field_tinh', 'ft', 'ft.entity_id = n.nid');
   $query
       ->condition('ft.field_tinh_target_id', $selected_tinh, '=')
-    ->condition('n.type', 'huyen')
-    ->condition('n.status', 1, '=')
-      ->fields('n' , array('nid', 'title'));
+      ->condition('n.type', 'huyen')
+      ->condition('n.status', 1, '=')
+      ->fields('n', array('nid', 'title'));
   $results = $query->execute()->fetchAll();
 
   foreach ($results as $node) {
@@ -147,10 +495,10 @@ function _cap_phep_internet_load_xa($selected_huyen) {
   $query = db_select('node', 'n');
   $query->innerjoin('field_data_field_huyen', 'ft', 'ft.entity_id = n.nid');
   $query
-    ->condition('ft.field_huyen_target_id', $selected_huyen, '=')
-    ->condition('n.type', 'xa')
-    ->condition('n.status', 1, '=')
-      ->fields('n' , array('nid', 'title'));
+      ->condition('ft.field_huyen_target_id', $selected_huyen, '=')
+      ->condition('n.type', 'xa')
+      ->condition('n.status', 1, '=')
+      ->fields('n', array('nid', 'title'));
 
   $results = $query->execute()->fetchAll();
 
@@ -161,9 +509,7 @@ function _cap_phep_internet_load_xa($selected_huyen) {
   return $xa_list;
 }
 
-
 function capphep_node_insert($node) {
   dsm('insert node ID: ' . $node->nid);
   //Generate PDF file.
-
 }
