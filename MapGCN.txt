@@ -1,4 +1,6 @@
-﻿{sogcn}:	Số GCN
+Thong tin tren file mau GCN
+
+{sogcn}:	Số GCN
 {n1}:		Ngày cấp GCN
 {t1}:		Tháng cấp GCN
 {na1}:		Năm cấp GCN
