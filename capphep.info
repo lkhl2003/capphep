@@ -1,0 +1,4 @@
+name = Cấp phép
+description = Cấp phép module.
+package = Development
+core = 7.x

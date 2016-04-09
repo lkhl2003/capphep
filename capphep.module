@@ -1,0 +1,169 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: levanhuyen
+ * Date: 10/28/15
+ * Time: 2:23 PM
+ */
+/**
+ * Implements hook_form_alter().
+ */
+
+function capphep_form_views_exposed_form_alter(&$form, &$form_state) {
+  if ($form['#id'] == 'views-exposed-form-danh-sach-giay-chung-nhan-page') {
+
+    if (!empty($form_state['values'])) {
+      $form_state['input'] = array_merge($form_state['input'], $form_state['values']);
+    }
+
+    $selectedHuyen = isset($form_state['input']['field_huyen_target_id']) ? $form_state['input']['field_huyen_target_id'] : 'All';
+
+    $form['field_huyen_target_id']['#default_value'] = $selectedHuyen;
+
+    $form['field_huyen_target_id']['#ajax'] = array(
+      'callback' => '_gcnxa_callback',
+      'wrapper' => 'xa_target_id_wrapper',
+    );
+
+    if(is_numeric($selectedHuyen)) {
+      $xa_list = array(
+        'All' => '- Any -',
+      );
+
+      $xa_list = array_merge($xa_list, _cap_phep_internet_load_xa($selectedHuyen));
+
+      $selected_xa = isset($form_state['input']['field_xa_target_id']) ? $form_state['input']['field_xa_target_id'] : key($xa_list);
+      $form['field_xa_target_id']['#options'] = $xa_list;
+      $form['field_xa_target_id']['#default_value'] = $selected_xa;
+      $form['field_xa_target_id']['#prefix'] = '<div id="xa_target_id_wrapper">';
+      $form['field_xa_target_id']['#suffix'] = '</div>';
+    }
+    else {
+      $xa_list = array(
+        'All' => '- Any -',
+      );
+
+      $selected_xa = isset($form_state['input']['field_xa_target_id']) ? $form_state['input']['field_xa_target_id'] : key($xa_list);
+      $form['field_xa_target_id']['#options'] = $xa_list;
+      $form['field_xa_target_id']['#default_value'] = $selected_xa;
+      $form['field_xa_target_id']['#prefix'] = '<div id="xa_target_id_wrapper">';
+      $form['field_xa_target_id']['#suffix'] = '</div>';
+    }
+
+    return $form;
+  }
+}
+
+function _gcnxa_callback($form, $form_state) {
+  return $form['field_xa_target_id'];
+}
+
+function capphep_form_giaychungnhan_node_form_alter(&$form, &$form_state, $form_id) {
+
+  if (isset($form['field_dia_chi_diem']) &&
+      isset($form['field_xa']) &&
+      isset($form['field_huyen']) &&
+      isset($form['field_tinh'])
+  ) {
+
+
+    $form['field_noi_cap_cmnd']['und'][0]['value']['#default_value'] = 'Công an Thanh Hóa';
+
+    //form_load_include($form_state, 'inc', 'node', 'node.pages');
+    $tinh_list = _cap_phep_internet_load_tinh();
+
+    $selected_tinh = isset($form_state['values']['field_tinh']['und'][0]['target_id']) ? $form_state['values']['field_tinh']['und'][0]['target_id'] :
+        (isset($form['nid']['#value']) ? $form['#node']->field_tinh['und'][0]['target_id'] : key($tinh_list));
+
+    $huyen_list = _cap_phep_internet_load_huyen($selected_tinh);
+
+    $selected_huyen = isset($form_state['values']['field_huyen']['und'][0]['target_id']) ? $form_state['values']['field_huyen']['und'][0]['target_id'] :
+        (isset($form['nid']['#value']) ? $form['#node']->field_huyen['und'][0]['target_id'] : key($huyen_list));
+
+    $form['field_huyen']['und']['#options'] = $huyen_list;
+    $form['field_huyen']['und']['#default_value'] = $selected_huyen;
+    $form['field_huyen']['und']['#ajax'] = array(
+        'callback' => '_huyen_dropdown_callback',
+        'wrapper' => 'xa_wrapper',
+    );
+
+    $xa_list = _cap_phep_internet_load_xa($selected_huyen);
+
+    $selected_xa = isset($form_state['values']['field_xa']['und'][0]['target_id']) ? $form_state['values']['field_xa']['und'][0]['target_id'] :
+        (isset($form['nid']['#value']) ? $form['#node']->field_xa['und'][0]['target_id'] : key($xa_list));
+
+    $form['field_xa']['und']['#options'] = $xa_list;
+    $form['field_xa']['und']['#default_value'] = $selected_xa;
+    $form['field_xa']['und']['#prefix'] = '<div id="xa_wrapper">';
+    $form['field_xa']['und']['#suffix'] = '</div>';
+  }
+
+  return $form;
+}
+
+function _huyen_dropdown_callback($form, $form_state) {
+
+  return $form['field_xa']['und'];
+}
+
+//field_xa_target_id
+function _cap_phep_internet_load_tinh(){
+  $tinh_list = array();
+
+  $results = db_select('node', 'n')
+      ->fields('n', array('nid', 'title'))
+      ->condition('n.type', 'tinh')
+      ->condition('status', 1)
+      ->execute()
+      ->fetchAll();
+
+  foreach ($results as $node) {
+    $tinh_list[$node->nid] = $node->title;
+  }
+
+  return $tinh_list;
+}
+
+function _cap_phep_internet_load_huyen($selected_tinh) {
+  $huyen_list = array();
+  $query = db_select('node', 'n');
+  $query->innerjoin('field_data_field_tinh', 'ft', 'ft.entity_id = n.nid');
+  $query
+      ->condition('ft.field_tinh_target_id', $selected_tinh, '=')
+    ->condition('n.type', 'huyen')
+    ->condition('n.status', 1, '=')
+      ->fields('n' , array('nid', 'title'));
+  $results = $query->execute()->fetchAll();
+
+  foreach ($results as $node) {
+    $huyen_list[$node->nid] = $node->title;
+  }
+  return $huyen_list;
+}
+
+function _cap_phep_internet_load_xa($selected_huyen) {
+
+  $xa_list = array();
+  $query = db_select('node', 'n');
+  $query->innerjoin('field_data_field_huyen', 'ft', 'ft.entity_id = n.nid');
+  $query
+    ->condition('ft.field_huyen_target_id', $selected_huyen, '=')
+    ->condition('n.type', 'xa')
+    ->condition('n.status', 1, '=')
+      ->fields('n' , array('nid', 'title'));
+
+  $results = $query->execute()->fetchAll();
+
+  foreach ($results as $node) {
+    $xa_list[$node->nid] = $node->title;
+  }
+
+  return $xa_list;
+}
+
+
+function capphep_node_insert($node) {
+  dsm('insert node ID: ' . $node->nid);
+  //Generate PDF file.
+
+}
