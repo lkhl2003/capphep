@@ -96,7 +96,7 @@ function capphep_get_template_file() {
   $wordPath = libraries_get_path('PHPWord');
   $dompath = libraries_get_path('dompdf');
   $capphepPath = drupal_get_path('module', 'capphep');
-  $fid = variable_set('MauFileGCN_fid');
+  $fid = variable_get('MauFileGCN_fid');
   if($fid) {
     $tempalteFile = file_load($fid)->uri;
   }
