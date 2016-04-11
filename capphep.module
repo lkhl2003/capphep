@@ -12,22 +12,22 @@ function capphep_menu() {
   $items = array();
 
   $items['test'] = array(
-    'title' => 'Test',
-    'page callback' => 'capphep_test',
+    'title'           => 'Test',
+    'page callback'   => 'capphep_test',
     'access callback' => TRUE,
   );
 
   $items['maufileGCN'] = array(
-    'title' => 'Mẫu file GCN',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('capphep_maufilegcn_form'),
+    'title'           => 'Mẫu file GCN',
+    'page callback'   => 'drupal_get_form',
+    'page arguments'  => array('capphep_maufilegcn_form'),
     'access callback' => TRUE,
   );
 
   $items['infileGCN'] = array(
-    'title' => 'In file GCN',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('capphep_infilegcn_form'),
+    'title'           => 'In file GCN',
+    'page callback'   => 'drupal_get_form',
+    'page arguments'  => array('capphep_infilegcn_form'),
     'access callback' => TRUE,
   );
 
@@ -36,9 +36,9 @@ function capphep_menu() {
 
 function capphep_infilegcn_form($form, $form_state) {
   $header = array(
-    'mahs' => array('data' => t('Ma HS'), 'field' => 'mahs'),
-    'hoten' => array('data' => t('Ho ten'), 'field' => 'hoten'),
-    'diachi' => array('data' => t('Dia chi'), 'field' => 'diachi'),
+    'mahs'    => array('data' => t('Ma HS'), 'field' => 'mahs'),
+    'hoten'   => array('data' => t('Ho ten'), 'field' => 'hoten'),
+    'diachi'  => array('data' => t('Dia chi'), 'field' => 'diachi'),
     'ngaycap' => array('data' => t('Ngay cap'), 'field' => 'ngaycap'),
   );
 
@@ -68,24 +68,24 @@ function capphep_infilegcn_form($form, $form_state) {
   $options = array();
   foreach ($result as $node) {
     $options[$node->nid] = array(
-      'mahs' => $node->mahs,
-      'hoten' => $node->hoten,
-      'diachi' => $node->diachi,
+      'mahs'    => $node->mahs,
+      'hoten'   => $node->hoten,
+      'diachi'  => $node->diachi,
       'ngaycap' => $node->ngaycap,
     );
   }
 
   $form['gcn'] = array(
-    '#type' => 'tableselect',
-    '#header' => $header,
+    '#type'    => 'tableselect',
+    '#header'  => $header,
     '#options' => $options,
-    '#empty' => t('No people available.'),
+    '#empty'   => t('No people available.'),
   );
 
   $form['pager'] = array('#theme' => 'pager');
 
   $form['submit'] = array(
-    '#type' => 'submit',
+    '#type'  => 'submit',
     '#value' => t('In File GCN'),
   );
   return $form;
@@ -118,6 +118,10 @@ function capphep_get_template_file() {
 }
 
 function capphep_infilegcn_form_submit($form, $form_state) {
+  $path = drupal_get_path('module', 'capphep');
+  require_once 'docxutilities/DocxUtilities.inc';
+
+
   $nids = array_filter($form_state['values']['gcn']);
   $nodes = node_load_multiple($nids);
   $docxFiles = array();
@@ -128,27 +132,41 @@ function capphep_infilegcn_form_submit($form, $form_state) {
     $docxFiles[] = capphep_generate_file_gcn($node, $templateProcessor);
   }
 
-  require_once libraries_get_path('DocxMerge') . '/src/DocxMerge.php';
-  $docxMerge = new DocxMerge\DocxMerge();
+  if (sizeof($docxFiles) > 0) {
+    $firstDocument = $docxFiles[0];
+    $finalDocument = $path . '/temp.docx';
 
-  $tempDocx = file_directory_temp() . "/temp.docx";
-    
-  $docxMerge->merge($docxFiles, $tempDocx);
-  /*
-  header('Content-Description: File Transfer');
-  header('Content-Type: application/octet-stream');
-  header('Content-Disposition: attachment; filename=temp.docx');
-  header('Content-Transfer-Encoding: binary');
-  header('Expires: 0');
-  header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-  header('Pragma: public');
-  header('Content-Length: ' . filesize($tempDocx));
-  ob_clean();
-  flush();
-  $status = readfile($tempDocx);
-  unlink($tempDocx);
-  exit;
-*/
+    $options = array('enforceSectionPageBreak' => true);
+    if (sizeof($docxFiles) > 1) {
+      for ($i = 1; $i < sizeof($docxFiles); $i++) {
+        $secondDocument = $docxFiles[$i];
+        $finalDocument = $path . '/temp' . $i . '.docx';
+
+        $docx = new DocxUtilities();
+        $docx->mergeDocx($firstDocument, $secondDocument, $finalDocument, $options);
+        $firstDocument = $finalDocument;
+      }
+      for ($i = 1; $i < (sizeof($docxFiles) - 1); $i++) {
+        unlink($path . '/temp' . $i . '.docx');
+      }
+
+      //last temp file docx;
+      $finalDocument = $path . '/temp' . (sizeof($docxFiles) - 1) . '.docx';
+    }
+    header('Content-Description: File Transfer');
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename=temp.docx');
+    header('Content-Transfer-Encoding: binary');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Pragma: public');
+    header('Content-Length: ' . filesize($finalDocument));
+    ob_clean();
+    flush();
+    $status = readfile($finalDocument);
+    unlink($finalDocument);
+    drupal_exit();
+  }
 }
 
 function capphep_generate_file_gcn($node, $templateProcessor) {
@@ -261,11 +279,11 @@ function capphep_maufilegcn_form($form, $form_state) {
   }
   $form['maufilegcn'] = array(
     '#title' => t('Upload Mẫu file GCN mới'),
-    '#type' => 'file',
+    '#type'  => 'file',
   );
 
   $form['submit'] = array(
-    '#type' => 'submit',
+    '#type'  => 'submit',
     '#value' => t('Submit'),
   );
 
@@ -370,7 +388,7 @@ function capphep_form_views_exposed_form_alter(&$form, &$form_state) {
 
     $form['field_huyen_target_id']['#ajax'] = array(
       'callback' => '_gcnxa_callback',
-      'wrapper' => 'xa_target_id_wrapper',
+      'wrapper'  => 'xa_target_id_wrapper',
     );
 
     if (is_numeric($selectedHuyen)) {
@@ -432,7 +450,7 @@ function capphep_form_giaychungnhan_node_form_alter(&$form, &$form_state, $form_
     $form['field_huyen']['und']['#default_value'] = $selected_huyen;
     $form['field_huyen']['und']['#ajax'] = array(
       'callback' => '_huyen_dropdown_callback',
-      'wrapper' => 'xa_wrapper',
+      'wrapper'  => 'xa_wrapper',
     );
 
     $xa_list = _cap_phep_internet_load_xa($selected_huyen);
