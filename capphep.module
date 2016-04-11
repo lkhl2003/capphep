@@ -96,7 +96,13 @@ function capphep_get_template_file() {
   $wordPath = libraries_get_path('PHPWord');
   $dompath = libraries_get_path('dompdf');
   $capphepPath = drupal_get_path('module', 'capphep');
-  $tempalteFile = $capphepPath . '/MauGCN.docx';
+  $fid = variable_set('MauFileGCN_fid');
+  if($fid) {
+    $tempalteFile = file_load($fid)->uri;
+  }
+  else {
+    $tempalteFile = $capphepPath . '/MauGCN.docx';
+  }
 
   require_once $wordPath . '/src/PhpWord/Autoloader.php';
 
