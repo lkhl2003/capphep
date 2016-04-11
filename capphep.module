@@ -111,16 +111,6 @@ function capphep_get_template_file() {
 
   $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($tempalteFile);
   return $templateProcessor;
-
-
-  capphep_test_gcn($templateProcessor);
-
-  $templateProcessor->saveAs($docFile);
-
-  $phpWord = \PhpOffice\PhpWord\IOFactory::load($docFile);
-  $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
-  $objWriter->save($pdfFile);
-  return 'ok';
 }
 
 function capphep_infilegcn_form_submit($form, $form_state) {
