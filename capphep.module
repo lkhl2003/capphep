@@ -35,6 +35,21 @@ function capphep_menu() {
 }
 
 function capphep_infilegcn_form($form, $form_state) {
+  
+  
+  $fid = variable_get('MauFileGCN_fid');
+  
+  if($fid) {
+    $tempalteFile = file_load($fid)->uri;
+  }
+  else {
+    $tempalteFile = $capphepPath . '/MauGCN.docx';
+  }
+
+  drupal_set_message('Get template: ' . $tempalteFile);
+  
+  
+  
   $header = array(
     'mahs'    => array('data' => t('Ma HS'), 'field' => 'mahs'),
     'hoten'   => array('data' => t('Ho ten'), 'field' => 'hoten'),
@@ -96,14 +111,16 @@ function capphep_get_template_file() {
   $wordPath = libraries_get_path('PHPWord');
   $dompath = libraries_get_path('dompdf');
   $capphepPath = drupal_get_path('module', 'capphep');
+  
   $fid = variable_get('MauFileGCN_fid');
+  
   if($fid) {
     $tempalteFile = file_load($fid)->uri;
   }
   else {
     $tempalteFile = $capphepPath . '/MauGCN.docx';
   }
-
+  
   require_once $wordPath . '/src/PhpWord/Autoloader.php';
 
   \PhpOffice\PhpWord\Autoloader::register();
@@ -120,8 +137,7 @@ function capphep_infilegcn_form_submit($form, $form_state) {
 
   $nids = array_filter($form_state['values']['gcn']);
   $nodes = node_load_multiple($nids);
-  $docxFiles = array();
-  $templateProcessor = capphep_get_template_file();
+  $docxFiles = array();  
 
   foreach ($nodes as $node) {
     $templateProcessor = capphep_get_template_file();
@@ -130,10 +146,11 @@ function capphep_infilegcn_form_submit($form, $form_state) {
 
   if (sizeof($docxFiles) > 0) {
     $firstDocument = $docxFiles[0];
-    $finalDocument = $path . '/temp.docx';
+    $finalDocument = $firstDocument;
 
     $options = array('enforceSectionPageBreak' => true);
     if (sizeof($docxFiles) > 1) {
+      $finalDocument = $path . '/temp.docx';
       for ($i = 1; $i < sizeof($docxFiles); $i++) {
         $secondDocument = $docxFiles[$i];
         $finalDocument = $path . '/temp' . $i . '.docx';
@@ -311,7 +328,7 @@ function capphep_maufilegcn_form_submit($form, $form_state) {
   file_save($file);
   variable_set('MauFileGCN_fid', $file->fid);
   // Set a response to the user.
-  drupal_set_message(t('The form has been submitted and the image has been saved, filename: @filename:@fid.', array('@filename' => $file->filename, '@fid' => $file->fid)));
+  drupal_set_message(t('Mẫu giấy chứng nhận đã được cập nhật, filename: @filename.', array('@filename' => $file->filename)));
 }
 
 function capphep_test() {
