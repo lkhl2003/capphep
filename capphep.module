@@ -114,6 +114,11 @@ function capphep_infilegcn_form_submit($form, $form_state) {
     
     $merge->mergeDocx($firstDocument, $docxFiles, $finalDocument, $options);
 
+    //unlink file;
+    unlink($firstDocument);
+    foreach($docxFiles as $filename) {
+      unlink($filename);
+    }
     
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
@@ -125,22 +130,23 @@ function capphep_infilegcn_form_submit($form, $form_state) {
     header('Content-Length: ' . filesize($finalDocument));
     ob_clean();
     flush();
-    $status = readfile($finalDocument);
+    readfile($finalDocument);
     unlink($finalDocument);
-    drupal_exit();
-    //drupal_goto('infileGCN');
+    drupal_exit();    
   }
 }
 
 function capphep_generate_file_gcn($node) {
   require_once 'phpdocx/Classes/Phpdocx/Create/CreateDocxFromTemplate.inc';
 
+  $templateFile = drupal_get_path('module', 'capphep') . '/MauGCN.docx';
+
   $fid = variable_get('MauFileGCN_fid');
-  $templateFile = drupal_get_path('module', 'capphep');
-  if ($fid) {
+  $file = file_load($fid);
+  if ($fid && file_exists($file->uri)) {
     $templateFile = file_load($fid)->uri;
   }
-
+  
   $docx = new CreateDocxFromTemplate($templateFile);
 
   $docxFile = file_directory_temp() . '/' . $node->nid;
