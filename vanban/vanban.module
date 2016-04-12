@@ -1,7 +1,0 @@
-<?php
-/**
- * @file
- * Code for the Vanban feature.
- */
-
-include_once 'vanban.features.inc';
