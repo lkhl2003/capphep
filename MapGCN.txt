@@ -1,0 +1,31 @@
+Thong tin tren file mau GCN
+
+{sogcn}:	Số GCN
+{n1}:		Ngày cấp GCN
+{t1}:		Tháng cấp GCN
+{na1}:		Năm cấp GCN
+{n2}:		Ngày GNC có giá trị
+{t2}:		Thán GNC có giá trị
+{na2}:		Năm GNC có giá trị
+{n3}:		Ngày GNC cấp lần đầu
+{t3}:		Ngày GNC cấp lần đầu
+{na3}:		Ngày GNC cấp lần đầu
+{n4}:		Ngày GNC sửa đổi, bổ sung (nếu có)
+{t4}:		Ngày GNC sửa đổi, bổ sung (nếu có)
+{na4}:		Ngày GNC sửa đổi, bổ sung (nếu có)
+{hovaten}:	Họ và tên
+{socmnd}:	Số CMND
+{n4}:		Ngày CMND
+{t4}:		Tháng CMND
+{na4}:		Năm CNMD
+{noicap}:	Nơi cấp CMND
+{dc1}:		Địa chỉ điểm
+{sodienthoai}:	Số điện thoại
+{fax}:		Fax
+{email}:	Email
+{sodkkd}:	Số ĐKKD
+{tendiem}:	Tên điểm
+{diachi1}:	Địa chỉ (đến xã)
+{diachi2}:	Địa chỉ (đến tỉnh)
+{dientich}:	Diện tích
+
