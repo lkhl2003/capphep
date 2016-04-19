@@ -297,38 +297,42 @@ function capphep_maufilegcn_form_submit($form, $form_state) {
   unset($form_state['storage']['maufilegcn']);
 // Make the storage of the file permanent.
   $file->status = FILE_STATUS_PERMANENT;
-
-// Save file status.
-
   file_save($file);
   variable_set('MauFileGCN_fid', $file->fid);
-// Set a response to the user.
   drupal_set_message(t('Mẫu giấy chứng nhận đã được cập nhật, filename: @filename.', array('@filename' => $file->filename)));
 }
 
 function capphep_test() {
+  dsm('Test php execute command to convert pdf');
+  $homeTemp = file_directory_temp();
+  
+  $homeTemp = drupal_realpath($homeTemp);
+  
+  $cmd = 'export HOME='.$homeTemp.' && /usr/lib/libreoffice/program/soffice --headless --convert-to pdf ';
+  $docxfile = $homeTemp . '/4268.docx';
+  $cmd .= $docxfile;
+  
+  dsm($cmd);
+  $output = '';
+  shell_exec($cmd);
+  
+  return 'Done!';
+  
   $wordPath = libraries_get_path('PHPWord');
   $dompath = libraries_get_path('dompdf');
-  $capphepPath = drupal_get_path('module', 'capphep');
+  $docxPath = drupal_get_path('module', 'capphep');
+  $capphepPath = file_directory_temp();
   $tempalteFile = $capphepPath . '/MauGCN.docx';
   $docFile = $capphepPath . '/Ketqua.docx';
   $htmlFile = $capphepPath . '/Ketqua.html';
   $pdfFile = $capphepPath . '/Ketqua.pdf';
-  require_once $wordPath . '/src/PhpWord/Autoloader.php';
+  require_once $docxPath . '/phpdocx/Classes/Phpdocx/Create/CreateDocx.inc';
 
-
-  \PhpOffice\PhpWord\Autoloader::register();
-  \PhpOffice\PhpWord\Settings::setPdfRenderer('DomPDF', $dompath);
-
-  $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($tempalteFile);
-
-  capphep_test_gcn($templateProcessor);
-
-  $templateProcessor->saveAs($docFile);
-
-  $phpWord = \PhpOffice\PhpWord\IOFactory::load($docFile);
-  $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
-  $objWriter->save($pdfFile);
+  $docx = new Phpdocx\Create\CreateDocx();
+  $docx->enableCompatibilityMode();
+  
+  $docx->transformDocument($tempalteFile, $pdfFile, $capphepPath);
+  
   return 'ok';
 }
 
