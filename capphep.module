@@ -5,7 +5,7 @@
  * User: levanhuyen
  * Date: 10/28/15
  * Time: 2:23 PM
- * Test git checkout file
+ * Deleted this line
  */
 use PhpOffice\PhpWord;
 use Phpdocx\Create\CreateDocx;
