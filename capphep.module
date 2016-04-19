@@ -113,9 +113,20 @@ function capphep_infilegcn_form_submit($form, $form_state) {
     $options = array('enforceSectionPageBreak' => true);
     $merge->mergeDocx($firstDocument, $docxFiles, $finalDocument, $options);
 
+	unlink($firstDocument);
+	foreach($docxFiles as $docxFile) {
+		unlink($docxFile);
+	}
+	
+	$temp = realpath(file_directory_temp());
+	$cmd = 'export HOME=' . $temp . ' && /usr/lib/libreoffice/program/soffice --headless --convert-to pdf --outdir ' . $temp . ' ' . $finalDocument;
+	shell_exec($cmd);
+	
+	unlink($finalDocument);
+	$finalDocument = $temp . '/GCN.pdf';
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename=temp.docx');
+    header('Content-Disposition: attachment; filename=GCN.pdf');
     header('Content-Transfer-Encoding: binary');
     header('Expires: 0');
     header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
@@ -171,6 +182,9 @@ function capphep_generate_file_gcn($node) {
 //Ngay cap CMND
   $n5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'd');
   $t5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'n');
+  if($t5 < 3) {
+	  $t5 = '0' . $t5;
+  }
   $na5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'Y');
 
 //Noi cap
@@ -297,7 +311,11 @@ function capphep_maufilegcn_form_submit($form, $form_state) {
 
 // Save file status.
 
+dsm($file);
+return;
+
   file_save($file);
+  
   variable_set('MauFileGCN_fid', $file->fid);
 // Set a response to the user.
   drupal_set_message(t('Mẫu giấy chứng nhận đã được cập nhật, filename: @filename.', array('@filename' => $file->filename)));
