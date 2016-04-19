@@ -108,7 +108,7 @@ function capphep_infilegcn_form_submit($form, $form_state) {
 
   if (sizeof($docxFiles) > 0) {
     $firstDocument = array_shift($docxFiles);
-    $finalDocument = file_directory_temp() . '/GCN.docx';
+    $finalDocument = realpath(file_directory_temp()) . '/GCN.docx';
     $merge = new Phpdocx\BatchProcessing\MultiMerge();
     $options = array('enforceSectionPageBreak' => true);
     $merge->mergeDocx($firstDocument, $docxFiles, $finalDocument, $options);
