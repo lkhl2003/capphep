@@ -118,15 +118,9 @@ function capphep_infilegcn_form_submit($form, $form_state) {
 		unlink($docxFile);
 	}
 	
-	$temp = realpath(file_directory_temp());
-	$cmd = 'export HOME=' . $temp . ' && /usr/lib/libreoffice/program/soffice --headless --convert-to pdf --outdir ' . $temp . ' ' . $finalDocument;
-	shell_exec($cmd);
-	
-	unlink($finalDocument);
-	$finalDocument = $temp . '/GCN.pdf';
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename=GCN.pdf');
+    header('Content-Disposition: attachment; filename=GCN.docx');
     header('Content-Transfer-Encoding: binary');
     header('Expires: 0');
     header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
