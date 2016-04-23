@@ -15,22 +15,22 @@ function capphep_menu() {
   $items = array();
 
   $items['test'] = array(
-    'title'           => 'Test',
-    'page callback'   => 'capphep_test',
+    'title' => 'Test',
+    'page callback' => 'capphep_test',
     'access callback' => TRUE,
   );
 
   $items['maufileGCN'] = array(
-    'title'           => 'Mẫu file GCN',
-    'page callback'   => 'drupal_get_form',
-    'page arguments'  => array('capphep_maufilegcn_form'),
+    'title' => 'Mẫu file GCN',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('capphep_maufilegcn_form'),
     'access callback' => TRUE,
   );
 
   $items['infileGCN'] = array(
-    'title'           => 'In file GCN',
-    'page callback'   => 'drupal_get_form',
-    'page arguments'  => array('capphep_infilegcn_form'),
+    'title' => 'In file GCN',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('capphep_infilegcn_form'),
     'access callback' => TRUE,
   );
 
@@ -39,9 +39,9 @@ function capphep_menu() {
 
 function capphep_infilegcn_form($form, $form_state) {
   $header = array(
-    'mahs'    => array('data' => t('Mã HS'), 'field' => 'mahs'),
-    'hoten'   => array('data' => t('Họ tên'), 'field' => 'hoten'),
-    'diachi'  => array('data' => t('Địa chỉ'), 'field' => 'diachi'),
+    'mahs' => array('data' => t('Mã HS'), 'field' => 'mahs'),
+    'hoten' => array('data' => t('Họ tên'), 'field' => 'hoten'),
+    'diachi' => array('data' => t('Địa chỉ'), 'field' => 'diachi'),
     'ngaycap' => array('data' => t('Ngày cấp'), 'field' => 'ngaycap'),
   );
 
@@ -71,24 +71,24 @@ function capphep_infilegcn_form($form, $form_state) {
   $options = array();
   foreach ($result as $node) {
     $options[$node->nid] = array(
-      'mahs'    => $node->mahs,
-      'hoten'   => $node->hoten,
-      'diachi'  => $node->diachi,
+      'mahs' => $node->mahs,
+      'hoten' => $node->hoten,
+      'diachi' => $node->diachi,
       'ngaycap' => $node->ngaycap,
     );
   }
 
   $form['gcn'] = array(
-    '#type'    => 'tableselect',
-    '#header'  => $header,
+    '#type' => 'tableselect',
+    '#header' => $header,
     '#options' => $options,
-    '#empty'   => t('No people available.'),
+    '#empty' => t('No people available.'),
   );
 
   $form['pager'] = array('#theme' => 'pager');
 
   $form['submit'] = array(
-    '#type'  => 'submit',
+    '#type' => 'submit',
     '#value' => t('In File GCN'),
   );
   return $form;
@@ -113,11 +113,11 @@ function capphep_infilegcn_form_submit($form, $form_state) {
     $options = array('enforceSectionPageBreak' => true);
     $merge->mergeDocx($firstDocument, $docxFiles, $finalDocument, $options);
 
-	unlink($firstDocument);
-	foreach($docxFiles as $docxFile) {
-		unlink($docxFile);
-	}
-	
+    unlink($firstDocument);
+    foreach ($docxFiles as $docxFile) {
+      unlink($docxFile);
+    }
+
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename=GCN.docx');
@@ -152,10 +152,10 @@ function capphep_generate_file_gcn($node) {
 //Ngay cap GCN
   $n1 = format_date(strtotime($node->field_ngay_cap_gcn['und'][0]['value']), 'custom', 'd');
   $t1 = format_date(strtotime($node->field_ngay_cap_gcn['und'][0]['value']), 'custom', 'n');
-  if($t1 < 3) {
-	  $t1 = '0' . $t1;
+  if ($t1 < 3) {
+    $t1 = '0' . $t1;
   }
-  
+
   $na1 = format_date(strtotime($node->field_ngay_cap_gcn['und'][0]['value']), 'custom', 'Y');
 
 //Ngay gia tri
@@ -167,7 +167,7 @@ function capphep_generate_file_gcn($node) {
   $n3 = $n1;
   $t3 = $t1;
   $na3 = $na1;
-  
+
   //Ngay sua doi, bo sung
 //Ho va ten
   $hovaten = $node->field_ho_ten['und'][0]['value'];
@@ -176,8 +176,8 @@ function capphep_generate_file_gcn($node) {
 //Ngay cap CMND
   $n5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'd');
   $t5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'n');
-  if($t5 < 3) {
-	  $t5 = '0' . $t5;
+  if ($t5 < 3) {
+    $t5 = '0' . $t5;
   }
   $na5 = format_date(strtotime($node->field_ngay_cap_cmnd['und'][0]['value']), 'custom', 'Y');
 
@@ -225,34 +225,34 @@ function capphep_generate_file_gcn($node) {
   $dientich = $node->field_tong_dien_tich['und'][0]['value'];
 
   $variables = array(
-    'sogcn'       => isset($sogcn) ? $sogcn : '',
-    'n1'          => isset($n1) ? $n1 : '',
-    't1'          => isset($t1) ? $t1 : '',
-    'na1'         => isset($na1) ? $na1 : '',
-    'n2'          => isset($n2) ? $n2 : '',
-    't2'          => isset($t2) ? $t2 : '',
-    'na2'         => isset($na2) ? $na2 : '',
-    'n3'          => isset($n3) ? $n3 : '',
-    't3'          => isset($t3) ? $t3 : '',
-    'na3'         => isset($na3) ? $na3 : '',
-    'n4'          => isset($n4) ? $n4 : '',
-    't4'          => isset($t4) ? $t4 : '',
-    'na4'         => isset($na4) ? $na4 : '',
-    'hovaten'     => isset($hovaten) ? $hovaten : '',
-    'socmnd'      => isset($socmnd) ? $socmnd : '',
-    'n5'          => isset($n5) ? $n5 : '',
-    't5'          => isset($t5) ? $t5 : '',
-    'na5'         => isset($na5) ? $na5 : '',
-    'noicap'      => isset($noicap) ? $noicap : '',
-    'dc1'         => isset($dc1) ? $dc1 : '',
+    'sogcn' => isset($sogcn) ? $sogcn : '',
+    'n1' => isset($n1) ? $n1 : '',
+    't1' => isset($t1) ? $t1 : '',
+    'na1' => isset($na1) ? $na1 : '',
+    'n2' => isset($n2) ? $n2 : '',
+    't2' => isset($t2) ? $t2 : '',
+    'na2' => isset($na2) ? $na2 : '',
+    'n3' => isset($n3) ? $n3 : '',
+    't3' => isset($t3) ? $t3 : '',
+    'na3' => isset($na3) ? $na3 : '',
+    'n4' => isset($n4) ? $n4 : '',
+    't4' => isset($t4) ? $t4 : '',
+    'na4' => isset($na4) ? $na4 : '',
+    'hovaten' => isset($hovaten) ? $hovaten : '',
+    'socmnd' => isset($socmnd) ? $socmnd : '',
+    'n5' => isset($n5) ? $n5 : '',
+    't5' => isset($t5) ? $t5 : '',
+    'na5' => isset($na5) ? $na5 : '',
+    'noicap' => isset($noicap) ? $noicap : '',
+    'dc1' => isset($dc1) ? $dc1 : '',
     'sodienthoai' => isset($sodienthoai) ? $sodienthoai : '',
-    'fax'         => isset($fax) ? $fax : '',
-    'email'       => isset($email) ? $email : '',
-    'sodkkd'      => isset($sodkkd) ? $sodkkd : '',
-    'tendiem'     => isset($tendiem) ? $tendiem : '',
-    'diachi1'     => isset($diachi1) ? $diachi1 : '',
-    'diachi2'     => isset($diachi2) ? $diachi2 : '',
-    'dientich'    => isset($dientich) ? $dientich : '',
+    'fax' => isset($fax) ? $fax : '',
+    'email' => isset($email) ? $email : '',
+    'sodkkd' => isset($sodkkd) ? $sodkkd : '',
+    'tendiem' => isset($tendiem) ? $tendiem : '',
+    'diachi1' => isset($diachi1) ? $diachi1 : '',
+    'diachi2' => isset($diachi2) ? $diachi2 : '',
+    'dientich' => isset($dientich) ? $dientich : '',
   );
 
   $docx->replaceVariableByText($variables);
@@ -271,11 +271,11 @@ function capphep_maufilegcn_form($form, $form_state) {
   }
   $form['maufilegcn'] = array(
     '#title' => t('Upload Mẫu file GCN mới'),
-    '#type'  => 'file',
+    '#type' => 'file',
   );
 
   $form['submit'] = array(
-    '#type'  => 'submit',
+    '#type' => 'submit',
     '#value' => t('Submit'),
   );
 
@@ -283,12 +283,17 @@ function capphep_maufilegcn_form($form, $form_state) {
 }
 
 function capphep_maufilegcn_form_validate($form, &$form_state) {
+  //prepare directory
+  $path = 'private://capphep/';
+  if(!is_dir($path)) {
+    mkdir($path);    
+  }
+  
   $file = file_save_upload(
-      'maufilegcn', 
-      array('file_validate_extensions' => array('docx')),
-      'private://',
+      'maufilegcn', array('file_validate_extensions' => array('docx')),
+      $path,
       FILE_EXISTS_REPLACE
-      );
+  );
 // If the file passed validation:
   if ($file) {
     $form_state['storage']['maufilegcn'] = $file;
@@ -299,40 +304,30 @@ function capphep_maufilegcn_form_validate($form, &$form_state) {
 }
 
 function capphep_maufilegcn_form_submit($form, $form_state) {
+  
   $file = $form_state['storage']['maufilegcn'];
 // We are done with the file, remove it from storage.
   unset($form_state['storage']['maufilegcn']);
 // Make the storage of the file permanent.
   file_save($file);
-  
+
   variable_set('MauFileGCN_fid', $file->fid);
 // Set a response to the user.
   drupal_set_message(t('Mẫu giấy chứng nhận đã được cập nhật, filename: @filename.', array('@filename' => $file->filename)));
 }
 
 function capphep_test() {
-  $wordPath = libraries_get_path('PHPWord');
-  $dompath = libraries_get_path('dompdf');
-  $capphepPath = drupal_get_path('module', 'capphep');
-  $tempalteFile = $capphepPath . '/MauGCN.docx';
-  $docFile = $capphepPath . '/Ketqua.docx';
-  $htmlFile = $capphepPath . '/Ketqua.html';
-  $pdfFile = $capphepPath . '/Ketqua.pdf';
-  require_once $wordPath . '/src/PhpWord/Autoloader.php';
-
-
-  \PhpOffice\PhpWord\Autoloader::register();
-  \PhpOffice\PhpWord\Settings::setPdfRenderer('DomPDF', $dompath);
-
-  $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($tempalteFile);
-
-  capphep_test_gcn($templateProcessor);
-
-  $templateProcessor->saveAs($docFile);
-
-  $phpWord = \PhpOffice\PhpWord\IOFactory::load($docFile);
-  $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
-  $objWriter->save($pdfFile);
+  $path = 'private://capphep/';
+  if(is_dir($path)) {
+    dsm('directory ' . $path);
+  }
+  else{
+    dsm('not directory ' . $path);
+    mkdir($path);
+    if(is_dir($path)) {
+      dsm($path . ' is now directory');
+    }
+  }
   return 'ok';
 }
 
@@ -380,7 +375,7 @@ function capphep_form_views_exposed_form_alter(&$form, &$form_state) {
 
     $form['field_huyen_target_id']['#ajax'] = array(
       'callback' => '_gcnxa_callback',
-      'wrapper'  => 'xa_target_id_wrapper',
+      'wrapper' => 'xa_target_id_wrapper',
     );
 
     if (is_numeric($selectedHuyen)) {
@@ -442,7 +437,7 @@ function capphep_form_giaychungnhan_node_form_alter(&$form, &$form_state, $form_
     $form['field_huyen']['und']['#default_value'] = $selected_huyen;
     $form['field_huyen']['und']['#ajax'] = array(
       'callback' => '_huyen_dropdown_callback',
-      'wrapper'  => 'xa_wrapper',
+      'wrapper' => 'xa_wrapper',
     );
 
     $xa_list = _cap_phep_internet_load_xa($selected_huyen);
