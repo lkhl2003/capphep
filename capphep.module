@@ -116,19 +116,13 @@ function capphep_infilegcn_form_submit($form, $form_state) {
       unlink($docxFile);
     }
 
-    header('Content-Description: File Transfer');
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename=GCN.docx');
-    header('Content-Transfer-Encoding: binary');
-    header('Expires: 0');
-    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-    header('Pragma: public');
-    header('Content-Length: ' . filesize($finalDocument));
-    ob_clean();
-    flush();
-    $status = readfile($finalDocument);
-    unlink($finalDocument);
-    drupal_exit();
+    $pdffile = capphep_word_to_pdf($finalDocument);
+    if (strlen($pdffile) > 0) {
+      capphep_transfer_file($pdffile);
+    } else {
+      capphep_transfer_file($finalDocument);
+    }
+
   }
 }
 
@@ -467,4 +461,47 @@ function _cap_phep_internet_load_xa($selected_huyen) {
   }
 
   return $xa_list;
+}
+
+function capphep_transfer_file($filename) {
+  $basename = drupal_basename($filename, NULL);
+  header('Content-Description: File Transfer');
+  header('Content-Type: application/octet-stream');
+  header('Content-Disposition: attachment; filename=' . $basename);
+  header('Content-Transfer-Encoding: binary');
+  header('Expires: 0');
+  header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+  header('Pragma: public');
+  header('Content-Length: ' . filesize($filename));
+  ob_clean();
+  flush();
+  readfile($filename);
+  unlink($filename);
+  drupal_exit();
+}
+
+function capphep_word_to_pdf($docxfile) {
+  $pdffile = '';
+  $soffice = '/usr/lib/libreoffice/program/soffice';
+  if (strlen($soffice) > 0) {
+    $home = realpath(file_directory_temp());
+
+    $cmd = 'export HOME=' . $home
+            . ' && ' . $soffice
+            . ' --headless -convert-to pdf'
+            . ' --outdir ' . $home
+            . ' ' . realpath($docxfile);
+    try {
+      exec($cmd);
+      $pathinfo = pathinfo(realpath($docxfile));
+      $pdffile = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . '.pdf';
+      if (!file_exists($pdffile)) {
+        return '';
+      }
+    } catch (Exception $e) {
+      return '';
+    }
+  }
+
+  return $pdffile;
 }
